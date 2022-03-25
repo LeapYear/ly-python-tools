@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Lint files with a variety of linters.
 

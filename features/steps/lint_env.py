@@ -37,6 +37,7 @@ class LintEnvironment:
         return self._path / "project"
 
     def __post_init__(self):
+        """Parse the parameters."""
         pyright_env_dir = (self._path / "pyright").resolve()
         self._runner = CliRunner(env={"PYRIGHT_PYTHON_ENV_DIR": pyright_env_dir.as_posix()})
 

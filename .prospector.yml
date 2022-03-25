@@ -3,3 +3,11 @@ pylint:
     # Don't warn about f-strings in logging
     # https://pylint.pycqa.org/en/latest/whatsnew/2.5.html#other-changes
     - logging-fstring-interpolation
+
+pydocstyle:
+  run: true
+  disable:
+    - D105
+    - D107
+    - D203
+    - D212
