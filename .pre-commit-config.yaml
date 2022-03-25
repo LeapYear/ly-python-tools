@@ -26,6 +26,8 @@ repos:
     rev: v0.1.1
     hooks:
       - id: lint
+        # This requires dev-dependencies to be added manually
+        additional_dependencies: [".[prospector,flake8]", "behave"]
         exclude: ^features/steps/data/
   - repo: local
     hooks:
