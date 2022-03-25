@@ -1,12 +1,13 @@
 [tool.poetry]
 name = "ly-python-tools"
-version = "0.1.1"
+version = "0.1.1.dev1+2"
 description = ""
 authors = ["Liam Damewood <liam@leapyear.io>"]
 
 [tool.poetry.scripts]
 autoupgrade = "ly_python_tools.autoupgrade:main"
 lint = "ly_python_tools.lint:main"
+version = "ly_python_tools.version:main"
 
 [tool.poetry.dependencies]
 python = "^3.7"
@@ -19,6 +20,8 @@ prospector = {version = "^1.7.7", optional = true }
 pyright = "^1.1.231"
 pyupgrade = "^2.31.1"
 toml = "^0.10.2"
+poetry-core = "^1.0.8"
+pep440 = "^0.1.0"
 
 [tool.poetry.extras]
 flake8 = ["flake8", "flake8-print"]
@@ -34,6 +37,15 @@ behave = "^1.2.6"
 include = '\.py$'
 pyupgrade = { options=["--py37-plus"] }
 pyright = { options=["--pythonversion", "3.7"] }
+
+[tool.version]
+version_path = "src/ly_python_tools/__init__.py"
+pep440_check = true
+handlers = [
+    { env = "CIRCLE_TAG", match = '^v((0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*))', repo = "${ARTIFACTORY_URL}/api/pypi/leapyear-pypi-release-local", validate = true },
+    { env = "CIRCLE_BRANCH", match = '^main$', repo = "${ARTIFACTORY_URL}/api/pypi/leapyear-pypi-snapshot-local", extra = "a${CIRCLE_BUILD_NUM}+${CIRCLE_SHA1}" },
+    { repo = "${ARTIFACTORY_URL}/api/pypi/leapyear-pypi-scratch-local", extra = ".dev${CIRCLE_BUILD_NUM}+${CIRCLE_SHA1}" }
+]
 
 [tool.black]
 line-length = 99
