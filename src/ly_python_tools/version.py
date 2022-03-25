@@ -22,7 +22,7 @@ from .config import get_pyproject
 @click.option(
     "--repo/--no-repo",
     default=False,
-    help="Print the repo name instead of applying the version.",
+    help="Print the repo name to publish to instead of applying the version.",
 )
 def main(repo: bool):
     """
@@ -30,7 +30,7 @@ def main(repo: bool):
 
     \b
     This application enables:
-    * Setting the version based on CI environment variables.
+    * Setting the version and which repo to publish to based on CI environment variables.
     * Validating that the version conforms to canonical pep440.
     * Checking that tags match the version listed in the poetry file.
     * Writing the version to the file containing `__version__ = "..."`
