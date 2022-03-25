@@ -16,7 +16,7 @@ Use the following sections to describe changes.
 
 ## [Unreleased]
 
-## [v0.1.0]
+## [v0.1.1]
 
-[unreleased]: https://github.com/LeapYear/ly-python-tools/compare/v0.1.0...HEAD
-[v0.1.0]: https://github.com/LeapYear/ly-python-tools/compare/8b13f241e199be07d303d51e288394412698f602...v0.1.0
+[unreleased]: https://github.com/LeapYear/ly-python-tools/compare/v0.1.1...HEAD
+[v0.1.1]: https://github.com/LeapYear/ly-python-tools/compare/8b13f241e199be07d303d51e288394412698f602...v0.1.1
