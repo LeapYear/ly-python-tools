@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ly-python-tools"
-version = "0.1.1.dev1+2"
+version = "0.1.1"
 description = ""
 authors = ["Liam Damewood <liam@leapyear.io>"]
 
