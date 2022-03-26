@@ -7,6 +7,7 @@ from typing import Any, ClassVar, Mapping, Pattern, Sequence
 
 import toml
 
+from ..config import NoProjectFile, get_pyproject
 from .linter import DEFAULT_LINTERS, Linter
 
 __all__ = ["LintConfiguration", "NoProjectFile"]
@@ -34,20 +35,4 @@ class LintConfiguration:
 
     @classmethod
     def get_configfile(cls) -> Path:
-        cwd = Path.cwd().absolute()
-        paths = [cwd] + list(cwd.parents)
-        for path in paths:
-            pyproject = path / cls._config_file
-            if pyproject.exists() and pyproject.is_file():
-                break
-        else:
-            raise NoProjectFile(cls._config_file, search_paths=paths)
-        return pyproject
-
-
-class NoProjectFile(Exception):
-    """No project file could be found."""
-
-    def __init__(self, proj_filename: Path, search_paths: Sequence[Path]):
-        self.proj_filename = proj_filename.as_posix()
-        self.search_paths = [path.as_posix() for path in search_paths]
+        return get_pyproject(cls._config_file)

@@ -54,60 +54,16 @@ jobs:
     steps:
       - setup-artifactory
       - checkout
+      - python/install-packages:
+          pkg-manager: poetry
       - run:
-          name: Determine the maturity of the artifact based on context clues
-          command: |
-            ARTIFACTORY_MATURITY=scratch
-            if [[ -n "${CIRCLE_TAG:-}" ]]; then
-              # tagged versions are releases
-              ARTIFACTORY_MATURITY=release
-            elif [[ "${CIRCLE_BRANCH}" == main ]]; then
-              # untagged on main
-              ARTIFACTORY_MATURITY=snapshot
-            fi
-            echo "export ARTIFACTORY_MATURITY=\"${ARTIFACTORY_MATURITY}\"" >> $BASH_ENV
-      - run:
-          name: Determine the correct repo based on context clues
-          command: |
-            ARTIFACTORY_REPO=leapyear-bin-${ARTIFACTORY_MATURITY}-local
-            echo "export ARTIFACTORY_REPO=\"${ARTIFACTORY_REPO}\"" >> $BASH_ENV
+          name: Set the package version
+          command: poetry run version --no-repo
       - run:
           name: Configure poetry to push to pypi
           command: |
-            poetry config repositories.leapyear-artifactory ${ARTIFACTORY_URL}/api/pypi/leapyear-pypi-${ARTIFACTORY_MATURITY}-local
+            poetry config repositories.leapyear-artifactory $(poetry run version --repo)
             poetry config http-basic.leapyear-artifactory $ARTIFACTORY_USER $ARTIFACTORY_PASSWORD
-      - run:
-          name: Determine the version of the artifact
-          command: |
-            mkdir -p dist
-            if [[ -n "${CIRCLE_TAG:-}" ]]
-            then
-              # This is tagged, so construct the version from the tag and remove the "v"
-              ARTIFACTORY_VERSION="${CIRCLE_TAG//v}"
-              # Refuse to continue if the CIRCLE tag doesn't match the poetry config.
-              POETRY_VERSION="$(poetry version -s)"
-              if [[ "${POETRY_VERSION}" != "${ARTIFACTORY_VERSION}" ]]
-              then
-                echo "poetry version '${POETRY_VERSION}' does not match artifactory version '${ARTIFACTORY_VERSION}'"
-                exit 1
-              fi
-            else
-              # Not a tag and the version was not set in a previous job.
-              #
-              # Set the pre-release segment according to PEP-440
-              # https://peps.python.org/pep-0440/
-              # scratch  => "X.Y.Z.dev{CIRCLE_BUILD_NUM}+{COMMIT_HASH}"
-              # snapshot => "X.Y.Za{CIRCLE_BUILD_NUM}+{COMMIT_HASH}"
-              PRE=".dev"
-              if [[ "${CIRCLE_BRANCH}" == main ]]; then PRE="a"; fi
-              # Get the x.y.z part of the version from the repo and drop everything else.
-              short_semver=$(poetry version -s | sed 's/^\(0\|[1-9]\d*\)\.\(0\|[1-9]\d*\)\.\(0\|[1-9]\d*\).*/\1.\2.\3/g')
-              # Construct the PEP-440 compatible version using CircleCI information
-              ARTIFACTORY_VERSION="${short_semver}${PRE}${CIRCLE_BUILD_NUM}+${CIRCLE_SHA1:0:7}"
-            fi
-            poetry version "${ARTIFACTORY_VERSION}"
-      - python/install-packages:
-          pkg-manager: poetry
       - run:
           name: Build wheel
           command: poetry build -f wheel

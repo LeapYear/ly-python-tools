@@ -26,8 +26,9 @@ repos:
     rev: v0.1.1
     hooks:
       - id: lint
-        # This requires dev-dependencies to be added manually
-        additional_dependencies: [".[prospector,flake8]", "behave"]
+        # This requires dependencies added since last rev to be added manually
+        additional_dependencies:
+          [".[prospector,flake8]", "behave", "poetry-core", "pep440"]
         exclude: ^features/steps/data/
   - repo: local
     hooks:
