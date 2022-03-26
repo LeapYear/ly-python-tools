@@ -6,7 +6,6 @@ authors = ["Liam Damewood <liam@leapyear.io>"]
 
 [tool.poetry.scripts]
 autoupgrade = "ly_python_tools.autoupgrade:main"
-lint = "ly_python_tools.lint:main"
 pyproper = "ly_python_tools.pyproper:main"
 version = "ly_python_tools.version:main"
 

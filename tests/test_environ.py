@@ -1,7 +1,7 @@
 """Test the environment helpers."""
 import os
 
-from ly_python_tools.lint.environ import environ
+from ly_python_tools.pyproper import environ
 
 
 def test_environ():
