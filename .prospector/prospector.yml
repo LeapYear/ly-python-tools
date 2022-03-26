@@ -1,3 +1,9 @@
+# Global prospector configuration
+ignore-paths:
+  - features/steps/data
+strictness: veryhigh
+max-line-length: 99
+
 pycodestyle:
   disable:
     # Don't warn about f-strings in logging

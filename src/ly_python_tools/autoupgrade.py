@@ -18,7 +18,7 @@ pyproject.toml.
 from __future__ import annotations
 
 import pathlib
-import subprocess  # nosec - B404
+import subprocess  # nosec: B404
 from collections import defaultdict
 from typing import Iterable, Mapping, NewType, Sequence
 

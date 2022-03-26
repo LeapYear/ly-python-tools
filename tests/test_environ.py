@@ -1,9 +1,10 @@
+"""Test the environment helpers."""
 import os
 
 from ly_python_tools.lint.environ import environ
 
 
-def test_environ():  # nosec
+def test_environ():
     """Test that context manager environ works as expected."""
     key = "__TEST_VAR__"
     value = "__TEST_VAR_VALUE__"

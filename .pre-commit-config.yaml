@@ -58,19 +58,6 @@ repos:
         exclude: ^features/steps/data/
         language: system
         types: [python]
-      - id: vulture
-        name: vulture
-        entry: poetry run vulture src tests
-        exclude: ^features
-        language: system
-        types: [python]
-        pass_filenames: false
-      - id: bandit
-        name: bandit
-        entry: poetry run bandit
-        exclude: ^features
-        language: system
-        types: [python]
       - id: pyproper
         name: pyproper
         entry: poetry run pyproper
@@ -79,8 +66,16 @@ repos:
         require_serial: true
         types: [python]
       - id: prospector
+        name: prospector (strict)
+        entry: poetry run prospector --profile strict
+        files: ^src
+        language: system
+        require_serial: true
+        types: [python]
+      - id: prospector
         name: prospector
         entry: poetry run prospector
+        files: ^(tests/|features)
         exclude: ^features/steps/data/
         language: system
         require_serial: true

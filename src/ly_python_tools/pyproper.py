@@ -1,3 +1,8 @@
+"""
+Wrapper around pyright to support some offline usage.
+
+See https://github.com/RobertCraigie/pyright-python/issues/2
+"""
 import functools
 import os
 import subprocess  # nosec: B404
@@ -46,7 +51,7 @@ def pyright_env(func: Callable[..., Any]) -> Callable[..., Any]:
 @click.argument("pyright_args", nargs=-1, type=click.UNPROCESSED)
 @pyright_env
 def main(bootstrap: bool, pyright_help: bool, pyright_args: Sequence[str]):
-    """A simple wrapper around pyright that enables downloading separately from running."""
+    """Return simple wrapper around pyright that enables downloading separately from running."""
     if bootstrap:
         subprocess.check_call(["pyright", "--version"])  # nosec: B603, B607
     elif pyright_help:
