@@ -25,7 +25,6 @@ class Linter:
     options: Sequence[str] = field(default_factory=list)
     mutable: bool = False
     run: bool = True
-    quiet: bool = False
     pass_filenames: bool = True
     additional_options: Sequence[str] = field(default_factory=list, repr=False)
     _executable: Path = field(init=False, repr=False)
@@ -53,7 +52,8 @@ class Linter:
 
         Returns None if the linter is not configured to run.
         """
-        assert self.run, f"{self.executable} is not configured to run"
+        if not self.run:
+            raise AssertionError(f"{self.executable} is not configured to run")
         cmd = [self._executable.as_posix()] + list(self.additional_options) + list(self.options)
         cmd += [file.as_posix() for file in files if self.pass_filenames]
         async with lock:
@@ -63,9 +63,8 @@ class Linter:
             stdout = (await proc.stdout.read()).decode("utf8") if proc.stdout else None
             stderr = (await proc.stderr.read()).decode("utf8") if proc.stderr else None
             modified = list(modified_files)
-            assert (
-                not modified
-            ) or self.mutable, f"{self.executable} was not expected to change files."
+            if modified and not self.mutable:
+                raise AssertionError(f"{self.executable} was not expected to change files.")
         return LintExecResult(
             linter=self.executable,
             stdout=stdout,

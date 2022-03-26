@@ -160,3 +160,7 @@ def iter_returns(items: Iterable[ReturnType | Exception | None]) -> Iterator[Ret
         yield item
     if exceptions:
         raise MultipleExceptions(exceptions)
+
+
+if __name__ == "__main__":
+    main()  # pylint: disable=no-value-for-parameter

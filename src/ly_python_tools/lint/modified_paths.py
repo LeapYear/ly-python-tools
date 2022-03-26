@@ -49,13 +49,8 @@ class _PathModified:
         return self.path.stat().st_mtime
 
     def _current_hash(self) -> str:
-        m = hashlib.md5()
         with self.path.open("rb") as f:
-            chunk = f.read(8192)
-            while chunk:
-                m.update(chunk)
-                chunk = f.read(8192)
-        return m.hexdigest()
+            return hashlib.blake2b(f.read()).hexdigest()
 
     def modified(self) -> bool:
         """Return if the file has been modified since initialization."""
