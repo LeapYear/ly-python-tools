@@ -71,6 +71,13 @@ repos:
         exclude: ^features
         language: system
         types: [python]
+      - id: pyproper
+        name: pyproper
+        entry: poetry run pyproper
+        exclude: ^features/steps/data/
+        language: system
+        require_serial: true
+        types: [python]
       - id: prospector
         name: prospector
         entry: poetry run prospector
