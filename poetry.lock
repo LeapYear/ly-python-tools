@@ -209,6 +209,14 @@ optional = true
 python-versions = "*"
 
 [[package]]
+name = "expandvars"
+version = "0.9.0"
+description = "Expand system variables Unix style"
+category = "main"
+optional = false
+python-versions = ">=3.4"
+
+[[package]]
 name = "filelock"
 version = "3.6.0"
 description = "A platform independent file lock."
@@ -941,7 +949,7 @@ prospector = ["prospector"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "276d7f0fc3ec66ddc5f57f73b1bfe2bd7bbc91688e8467c841458326e261a658"
+content-hash = "d189336dd337ccc17cf0d557915184888b9c5feefb0dbca0ae0b607dcafba552"
 
 [metadata.files]
 "aspy.refactor-imports" = [
@@ -1075,6 +1083,10 @@ docutils = [
 dodgy = [
     {file = "dodgy-0.2.1-py3-none-any.whl", hash = "sha256:51f54c0fd886fa3854387f354b19f429d38c04f984f38bc572558b703c0542a6"},
     {file = "dodgy-0.2.1.tar.gz", hash = "sha256:28323cbfc9352139fdd3d316fa17f325cc0e9ac74438cbba51d70f9b48f86c3a"},
+]
+expandvars = [
+    {file = "expandvars-0.9.0-py3-none-any.whl", hash = "sha256:ae90b9c6167e876a0d67892ae18cf2c1ea2e336b2b5542113239d33bf9267497"},
+    {file = "expandvars-0.9.0.tar.gz", hash = "sha256:6a0e7821e55ff1ab44f8ca08b50d2b2d01c076a9bc979da940467cb7f105c565"},
 ]
 filelock = [
     {file = "filelock-3.6.0-py3-none-any.whl", hash = "sha256:f8314284bfffbdcfa0ff3d7992b023d4c628ced6feb957351d4c48d059f56bc0"},

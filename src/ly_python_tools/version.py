@@ -18,6 +18,7 @@ from typing import Sequence
 import click
 import pep440
 import toml
+from expandvars import expandvars
 from poetry.core.version.version import Version
 
 from .config import get_pyproject
@@ -44,7 +45,7 @@ def main(repo: bool):
     if not repo:
         app.apply_version()
     if repo and app.repo:
-        click.echo(os.path.expandvars(app.repo))
+        click.echo(expandvars(app.repo))
 
 
 @dataclass(frozen=True)
@@ -88,7 +89,7 @@ class VersionApp:
     def full_version(self) -> str:
         """Return the version including all of the extra environment tags."""
         base_version = str(Version(self.project_version).base_version)  # type: ignore
-        return base_version + os.path.expandvars(self.handler.extra)
+        return base_version + expandvars(self.handler.extra)
 
     @property
     def repo(self) -> str | None:
