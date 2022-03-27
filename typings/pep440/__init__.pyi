@@ -1,6 +1,0 @@
-# pylint: disable=all
-# flake8: noqa
-from __future__ import annotations
-
-def assert_valid(version: str) -> None: ...
-def is_canonical(version: str) -> bool: ...
