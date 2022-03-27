@@ -7,17 +7,20 @@ import shutil
 import tokenize
 from dataclasses import dataclass
 from dataclasses import field
+from functools import lru_cache
 from pathlib import Path
 from subprocess import check_output  # nosec: B404
 from tempfile import TemporaryDirectory
 from typing import Any
 from typing import Mapping
+from typing import Match
 from typing import Pattern
 from typing import Sequence
 
 import click
 import pep440
 import toml
+from expandvars import expandvars
 from poetry.core.version.version import Version
 
 from .config import get_pyproject
@@ -30,7 +33,8 @@ from .config import get_pyproject
     help="Print the repo name to publish to instead of applying the version.",
 )
 def main(repo: bool):
-    r"""
+    # noqa: D301
+    """
     Application for managing python versions via pyproject.toml file.
 
     \b
@@ -44,7 +48,7 @@ def main(repo: bool):
     if not repo:
         app.apply_version()
     if repo and app.repo:
-        click.echo(os.path.expandvars(app.repo))
+        click.echo(expandvars(app.repo))
 
 
 @dataclass(frozen=True)
@@ -66,11 +70,12 @@ class VersionApp:
 
     def __post_init__(self):
         version = self.handler.get_version()
-        if self.handler.validate and version and version != self.full_version:
-            raise ValueError(
-                f"pyproject version {self.full_version} "
-                f"does not match environment version {version}"
-            )
+        for matcher in self.handler.matchers:
+            if matcher.validate and version and version != self.full_version:
+                raise ValueError(
+                    f"pyproject version {self.full_version} "
+                    f"does not match environment version {version}"
+                )
         if self.config.pep440_check and not pep440.is_canonical(self.full_version.split("+")[0]):
             raise ValueError(f"pyproject version {self.full_version} does not conform to pep-440")
 
@@ -83,7 +88,7 @@ class VersionApp:
     def full_version(self) -> str:
         """Return the version including all of the extra environment tags."""
         base_version = str(Version(self.project_version).base_version)  # type: ignore
-        return base_version + os.path.expandvars(self.handler.extra)
+        return base_version + expandvars(self.handler.extra)
 
     @property
     def repo(self) -> str | None:
@@ -112,7 +117,7 @@ class VersionApp:
 
     def _write_version_file(self):
         # Rewrite the version file
-        matcher = re.compile(r"^__version__ = \"[^\"]*\"$")
+        matcher = re.compile(r"^__version__ = \"[^\"]*\".*$")
         version_string = f'__version__ = "{self.full_version}"'
 
         if self.config.version_path:
@@ -122,6 +127,8 @@ class VersionApp:
                     "w"
                 ) as out:
                     for token in tokenize.generate_tokens(read.readline):
+                        if token.type == tokenize.NL:
+                            out.write(token.line)
                         if token.type == tokenize.NEWLINE:
                             out.write(matcher.sub(version_string, token.line))
                 shutil.copy(outfile, self.config.version_path)
@@ -203,39 +210,67 @@ class VersionHandler:
 
     """
 
-    env: str | None = None
-    match: Pattern[str] | None = None
+    matchers: Sequence[Matcher] = field(default_factory=list)
     repo: str | None = None
     extra: str = ""
-    validate: bool = False
 
     def __post_init__(self):
-        if bool(self.env) != bool(self.match):
-            raise ValueError('"env" and "match" must both be specified')
+        if len([1 for matcher in self.matchers if matcher.validate]) > 1:
+            raise ValueError("It doesn't make sense to validate more than one matcher")
 
     def match_env(self) -> bool:
         """Return True if this handler should be triggered."""
-        if self.env and self.match:
-            return bool(self.match.match(os.getenv(self.env) or ""))
-        return True
+        return all(matcher.match_env() for matcher in self.matchers)
 
     def get_version(self) -> str | None:
         """Return the group match from the matcher."""
-        if self.env and self.match and self.validate:
-            match = self.match.match(os.getenv(self.env) or "")
-            if match:
-                return match.groups()[0]
+        for matcher in self.matchers:
+            if matcher.validate:
+                return matcher.get_version()
         return None
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, str]) -> VersionHandler:
+    def from_dict(cls, data: Mapping[str, Any]) -> VersionHandler:
         """Load an object from a dict."""
         data_copy = dict(data)
-        match = data_copy.pop("match", None)
+        matchers = data_copy.pop("matchers", [])
+        return cls(**data_copy, matchers=[Matcher.from_dict(matcher) for matcher in matchers])
+
+
+@dataclass(frozen=True)
+class Matcher:
+    """Determine if the environment variable matches a pattern."""
+
+    env: str
+    pattern: Pattern[str]
+    validate: bool
+
+    @property
+    @lru_cache()
+    def _matched(self) -> Match[str] | None:
+        """Return the matched pattern."""
+        # Lint false-positive: https://github.com/PyCQA/pylint/issues/5091
+        # pylint: disable=invalid-envvar-value
+        return self.pattern.match(os.getenv(self.env, ""))
+
+    def match_env(self) -> bool:
+        """Return True if the environment variable matches the pattern."""
+        return bool(self._matched)
+
+    def get_version(self) -> str | None:
+        """Return the first group of the pattern if validate is True."""
+        if self.validate:
+            if self._matched:
+                return self._matched.groups()[0]
+        return None
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> Matcher:
+        """Load an object from a dict."""
+        data_copy = dict(data)
+        pattern = re.compile(data_copy.pop("pattern"))
         validate = bool(data_copy.pop("validate", False))
-        return cls(
-            **data_copy, validate=validate, match=None if match is None else re.compile(match)
-        )
+        return cls(**data_copy, pattern=pattern, validate=validate)
 
 
 if __name__ == "__main__":

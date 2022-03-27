@@ -51,23 +51,10 @@ Install the project.
 poetry install -E prospector -E flake8
 ```
 
-Bootstrap the linter. This will ensure all of the expected linters are
-available.
+Bootstrap pyright using pyproper. This will ensure pyright is downloaded
 
 ```
-poetry run lint --bootstrap
-```
-
-Lint all of the python files in the `src` and `tests` directories.
-
-```
-poetry run lint src/ tests/
-```
-
-Run autoupgrade
-
-```
-poetry run autoupgrade
+poetry run pyproper --bootstrap
 ```
 
 ## Contributing
@@ -91,10 +78,10 @@ Install and use the linters
 ```
 # Install all linters
 poetry add --dev ly_python_tools@latest -E prospector -E flake8
-# Ensure all linters are available
-poetry run lint --bootstrap
+# Ensure pyright is downloaded
+poetry run pyproper --bootstrap
 # Run the linters
-poetry run lint .
+poetry run pyproper
 ```
 
 Upgrade all dev-dependencies
