@@ -22,17 +22,6 @@ repos:
     rev: "2.4.0"
     hooks:
       - id: editorconfig-checker
-<<<<<<< HEAD
-  - repo: https://github.com/LeapYear/ly-python-tools
-    rev: v0.1.1
-    hooks:
-      - id: lint
-        # This requires dependencies added since last rev to be added manually
-        additional_dependencies:
-          [".[prospector,flake8]", "behave", "poetry-core", "pep440"]
-        exclude: ^features/steps/data/
-=======
->>>>>>> 49aaa11 (Bandit and vulture)
   - repo: local
     hooks:
       - id: circleci-validate
