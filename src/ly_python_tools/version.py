@@ -248,8 +248,10 @@ class Matcher:
     @property
     @lru_cache()
     def _matched(self) -> Match[str] | None:
-        # The matched pattern
-        return self.pattern.match(os.getenv(self.env, ""))  # pylint: disable=invalid-envvar-value
+        """Return the matched pattern."""
+        # Lint false-positive: https://github.com/PyCQA/pylint/issues/5091
+        # pylint: disable=invalid-envvar-value
+        return self.pattern.match(os.getenv(self.env, ""))
 
     def match_env(self) -> bool:
         """Return True if the environment variable matches the pattern."""
