@@ -41,7 +41,7 @@ pep440_check = true
 # Tagged releases
 repo = "${ARTIFACTORY_URL}/api/pypi/leapyear-pypi-release-local"
 matchers = [
-    { env = "CIRCLE_TAG", pattern = '^v((0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*))$', validate = true },
+    { env = "CIRCLE_TAG", pattern = '^v((0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(\.post(0|[1-9]\d*))?)$', validate = true },
     { env = "CIRCLE_BRANCH", pattern = '^main$' }
 ]
 
