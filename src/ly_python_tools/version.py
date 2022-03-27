@@ -11,6 +11,7 @@ from functools import lru_cache
 from pathlib import Path
 from subprocess import check_output  # nosec: B404
 from tempfile import TemporaryDirectory
+from textwrap import indent
 from typing import Any
 from typing import Mapping
 from typing import Match
@@ -31,7 +32,13 @@ from .config import get_pyproject
     default=False,
     help="Print the repo name to publish to instead of applying the version.",
 )
-def main(repo: bool):
+@click.option(
+    "--check",
+    is_flag=True,
+    default=False,
+    help="Check what changes would be made",
+)
+def main(repo: bool, check: bool):
     # noqa: D301
     """
     Application for managing python versions via pyproject.toml file.
@@ -44,8 +51,10 @@ def main(repo: bool):
     * Writing the version to the file containing `__version__ = "..."`
     """
     app = VersionApp.from_pyproject(get_pyproject())
+    if check:
+        click.echo("Note: This run will not apply any changes")
     if not repo:
-        app.apply_version()
+        app.apply_version(not check)
     if repo and app.repo:
         click.echo(expandvars(app.repo))
 
@@ -105,18 +114,21 @@ class VersionApp:
             project_version=str(tool_root.get("poetry", {}).get("version")),
         )
 
-    def apply_version(self) -> VersionApp:
+    def apply_version(self, apply: bool) -> VersionApp:
         """Change the version according to the environment."""
-        self._apply_version()
-        self._write_version_file()
+        self._apply_version(apply=apply)
+        self._write_version_file(apply=apply)
         return self
 
-    def _apply_version(self):
+    def _apply_version(self, apply: bool):
         # Use poetry to set the version
         click.echo(f"Setting version to {self.full_version}")
-        check_output(["poetry", "version", str(self.full_version)])  # nosec
+        cmd = ["poetry", "version", str(self.full_version)]
+        click.echo(f"> {' '.join(cmd)}")
+        if apply:
+            check_output(cmd)  # nosec
 
-    def _write_version_file(self):
+    def _write_version_file(self, apply: bool):
         # Rewrite the version file
         matcher = re.compile(r"^__version__ = \"[^\"]*\".*$")
         version_string = f'__version__ = "{self.full_version!s}"  # Auto-generated'
@@ -132,7 +144,13 @@ class VersionApp:
                             out.write(token.line)
                         if token.type == tokenize.NEWLINE:
                             out.write(matcher.sub(version_string, token.line))
-                shutil.copy(outfile, self.config.version_path)
+
+                click.echo(f"Write to {self.config.version_path!s}")
+                with outfile.open("r") as out:
+                    click.echo(indent(out.read(), "> ", predicate=lambda _: True), nl=False)
+
+                if apply:
+                    shutil.copy(outfile, self.config.version_path)
 
 
 @dataclass(frozen=True)
