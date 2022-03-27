@@ -1,7 +1,8 @@
 """
 Wrapper around pyright to support some offline usage.
 
-See https://github.com/RobertCraigie/pyright-python/issues/2
+See https://github.com/RobertCraigie/pyright-python/issues/2, resolving it may deprecate the need
+for this executable.
 """
 import functools
 import os
@@ -53,6 +54,7 @@ def pyright_env(func: Callable[..., Any]) -> Callable[..., Any]:
 def main(bootstrap: bool, pyright_help: bool, pyright_args: Sequence[str]):
     """Return simple wrapper around pyright that enables downloading separately from running."""
     if bootstrap:
+        # This will trigger npx and download the npm version of pyright
         subprocess.check_call(["pyright", "--version"])  # nosec: B603, B607
     elif pyright_help:
         subprocess.check_call(["pyright", "--help"])  # nosec: B603, B607
