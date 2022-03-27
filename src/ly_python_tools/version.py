@@ -7,11 +7,13 @@ import shutil
 import tokenize
 from dataclasses import dataclass
 from dataclasses import field
+from functools import lru_cache
 from pathlib import Path
 from subprocess import check_output  # nosec: B404
 from tempfile import TemporaryDirectory
 from typing import Any
 from typing import Mapping
+from typing import Match
 from typing import Pattern
 from typing import Sequence
 
@@ -31,7 +33,8 @@ from .config import get_pyproject
     help="Print the repo name to publish to instead of applying the version.",
 )
 def main(repo: bool):
-    r"""
+    # noqa: D301
+    """
     Application for managing python versions via pyproject.toml file.
 
     \b
@@ -67,16 +70,12 @@ class VersionApp:
 
     def __post_init__(self):
         version = self.handler.get_version()
-        if self.handler.tag_validate and version and version != self.full_version:
-            raise ValueError(
-                f"pyproject version {self.full_version} "
-                f"does not match environment version {version}"
-            )
-        if self.handler.branch_validate and version and version != self.full_version:
-            raise ValueError(
-                f"pyproject version {self.full_version} "
-                f"does not match environment version {version}"
-            )
+        for matcher in self.handler.matchers:
+            if matcher.validate and version and version != self.full_version:
+                raise ValueError(
+                    f"pyproject version {self.full_version} "
+                    f"does not match environment version {version}"
+                )
         if self.config.pep440_check and not pep440.is_canonical(self.full_version.split("+")[0]):
             raise ValueError(f"pyproject version {self.full_version} does not conform to pep-440")
 
@@ -118,7 +117,7 @@ class VersionApp:
 
     def _write_version_file(self):
         # Rewrite the version file
-        matcher = re.compile(r"^__version__ = \"[^\"]*\"$")
+        matcher = re.compile(r"^__version__ = \"[^\"]*\".*$")
         version_string = f'__version__ = "{self.full_version}"'
 
         if self.config.version_path:
@@ -176,7 +175,7 @@ class VersionConfig:
 
 
 @dataclass(frozen=True)
-class VersionHandler:  # pylint: disable=too-many-instance-attributes
+class VersionHandler:
     """
     Rule for configuration and environment based version handler.
 
@@ -211,59 +210,65 @@ class VersionHandler:  # pylint: disable=too-many-instance-attributes
 
     """
 
-    tag_env: str | None = None
-    tag_match: Pattern[str] | None = None
-    tag_validate: bool = False
-    branch_env: str | None = None
-    branch_match: Pattern[str] | None = None
-    branch_validate: bool = False
+    matchers: Sequence[Matcher] = field(default_factory=list)
     repo: str | None = None
     extra: str = ""
 
     def __post_init__(self):
-        if bool(self.tag_env) != bool(self.tag_match):
-            raise ValueError('"tag_env" and "tag_match" must both be specified')
-        if bool(self.branch_env) != bool(self.branch_match):
-            raise ValueError('"branch_env" and "branch_match" must both be specified')
-        if self.branch_validate and self.tag_validate:
-            raise ValueError("It doesn't make any sense to validate both tags and branches")
+        if len([1 for matcher in self.matchers if matcher.validate]) > 1:
+            raise ValueError("It doesn't make sense to validate more than one matcher")
 
     def match_env(self) -> bool:
         """Return True if this handler should be triggered."""
-        ret = [True]
-        if self.tag_env and self.tag_match:
-            ret.append(bool(self.tag_match.match(os.getenv(self.tag_env) or "")))
-        if self.branch_env and self.branch_match:
-            ret.append(bool(self.branch_match.match(os.getenv(self.branch_env) or "")))
-        return all(ret)
+        return all(matcher.match_env() for matcher in self.matchers)
 
     def get_version(self) -> str | None:
         """Return the group match from the matcher."""
-        if self.tag_env and self.tag_match and self.tag_validate:
-            match = self.tag_match.match(os.getenv(self.tag_env) or "")
-            if match:
-                return match.groups()[0]
-        if self.branch_env and self.branch_match and self.branch_validate:
-            match = self.branch_match.match(os.getenv(self.branch_env) or "")
-            if match:
-                return match.groups()[0]
+        for matcher in self.matchers:
+            if matcher.validate:
+                return matcher.get_version()
         return None
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, str]) -> VersionHandler:
+    def from_dict(cls, data: Mapping[str, Any]) -> VersionHandler:
         """Load an object from a dict."""
         data_copy = dict(data)
-        tag_match = data_copy.pop("tag_match", None)
-        tag_validate = bool(data_copy.pop("tag_validate", False))
-        branch_match = data_copy.pop("branch_match", None)
-        branch_validate = bool(data_copy.pop("branch_validate", False))
-        return cls(
-            **data_copy,
-            tag_validate=tag_validate,
-            tag_match=re.compile(tag_match) if tag_match else None,
-            branch_validate=branch_validate,
-            branch_match=re.compile(branch_match) if branch_match else None,
-        )
+        matchers = data_copy.pop("matchers", [])
+        return cls(**data_copy, matchers=[Matcher.from_dict(matcher) for matcher in matchers])
+
+
+@dataclass(frozen=True)
+class Matcher:
+    """Determine if the environment variable matches a pattern."""
+
+    env: str
+    pattern: Pattern[str]
+    validate: bool
+
+    @property
+    @lru_cache()
+    def _matched(self) -> Match[str] | None:
+        # The matched pattern
+        return self.pattern.match(os.getenv(self.env, ""))  # pylint: disable=invalid-envvar-value
+
+    def match_env(self) -> bool:
+        """Return True if the environment variable matches the pattern."""
+        return bool(self._matched)
+
+    def get_version(self) -> str | None:
+        """Return the first group of the pattern if validate is True."""
+        if self.validate:
+            if self._matched:
+                return self._matched.groups()[0]
+        return None
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> Matcher:
+        """Load an object from a dict."""
+        data_copy = dict(data)
+        pattern = re.compile(data_copy.pop("pattern"))
+        validate = bool(data_copy.pop("validate", False))
+        return cls(**data_copy, pattern=pattern, validate=validate)
 
 
 if __name__ == "__main__":
