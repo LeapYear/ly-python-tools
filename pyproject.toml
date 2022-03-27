@@ -33,11 +33,6 @@ pre-commit = "^2.17.0"
 pytest-cov = "^3.0.0"
 behave = "^1.2.6"
 
-[tool.lint]
-include = '\.py$'
-pyupgrade = { options=["--py37-plus"] }
-pyright = { options=["--pythonversion", "3.7"] }
-
 [tool.version]
 version_path = "src/ly_python_tools/__init__.py"
 pep440_check = true
