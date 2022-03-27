@@ -1,0 +1,12 @@
+ignore-paths:
+  - tests
+  - features
+
+inherits:
+  - prospector.yml
+
+vulture:
+  run: true
+
+bandit:
+  run: true

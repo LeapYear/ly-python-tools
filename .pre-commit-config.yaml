@@ -22,14 +22,6 @@ repos:
     rev: "2.4.0"
     hooks:
       - id: editorconfig-checker
-  - repo: https://github.com/LeapYear/ly-python-tools
-    rev: v0.1.1
-    hooks:
-      - id: lint
-        # This requires dependencies added since last rev to be added manually
-        additional_dependencies:
-          [".[prospector,flake8]", "behave", "poetry-core", "pep440"]
-        exclude: ^features/steps/data/
   - repo: local
     hooks:
       - id: circleci-validate
@@ -37,3 +29,43 @@ repos:
         entry: circleci config validate
         language: system
         files: ^.circleci/config\.yml$
+      - id: pyupgrade
+        name: pyupgrade
+        entry: poetry run pyupgrade
+        exclude: ^features/steps/data/
+        language: system
+        types: [python]
+      - id: black
+        name: black
+        entry: poetry run black
+        exclude: ^features/steps/data/
+        language: system
+        types: [python]
+      - id: isort
+        name: isort
+        entry: poetry run isort
+        exclude: ^features/steps/data/
+        language: system
+        types: [python]
+      - id: pyproper
+        name: pyproper
+        entry: poetry run pyproper
+        exclude: ^features/steps/data/
+        language: system
+        require_serial: true
+        types: [python]
+      - id: prospector
+        name: prospector (strict)
+        entry: poetry run prospector --profile strict
+        files: ^src
+        language: system
+        require_serial: true
+        types: [python]
+      - id: prospector
+        name: prospector
+        entry: poetry run prospector
+        files: ^(tests/|features)
+        exclude: ^features/steps/data/
+        language: system
+        require_serial: true
+        types: [python]

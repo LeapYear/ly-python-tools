@@ -1,3 +1,4 @@
+"""Configure the package version using the CI environment."""
 from __future__ import annotations
 
 import os
@@ -6,7 +7,7 @@ import shutil
 import tokenize
 from dataclasses import dataclass, field
 from pathlib import Path
-from subprocess import run
+from subprocess import check_output  # nosec: B404
 from tempfile import TemporaryDirectory
 from typing import Any, Mapping, Pattern, Sequence
 
@@ -25,7 +26,7 @@ from .config import get_pyproject
     help="Print the repo name to publish to instead of applying the version.",
 )
 def main(repo: bool):
-    """
+    r"""
     Application for managing python versions via pyproject.toml file.
 
     \b
@@ -47,12 +48,13 @@ class VersionApp:
     """
     Version application.
 
-    Arguments
+    Arguments:
     ---------
     config:
         The config for running the app.
     project_version:
         The original `tool.poetry.version` field.
+
     """
 
     config: VersionConfig
@@ -102,7 +104,7 @@ class VersionApp:
     def _apply_version(self):
         # Use poetry to set the version
         click.echo(f"Setting version to {self.full_version}")
-        run(["poetry", "version", self.full_version], check=True, capture_output=True)
+        check_output(["poetry", "version", self.full_version])  # nosec
 
     def _write_version_file(self):
         # Rewrite the version file
@@ -126,7 +128,7 @@ class VersionConfig:
     """
     Configuration for version tools.
 
-    Arguments
+    Arguments:
     ---------
     pep440_check:
         If True, ensure the version (up to the first "+") is a valid pep440 version.
@@ -134,6 +136,7 @@ class VersionConfig:
         Handlers ordered in which they are checked.
     version_path:
         If provided, the version tool will update this file's `__version__ = "..."` line.
+
     """
 
     pep440_check: bool = True
@@ -169,7 +172,7 @@ class VersionHandler:
     then when the environment variable `env` matches the regex pattern `match`, this rule is
     activated.
 
-    Arguments
+    Arguments:
     ---------
     env:
         Environment variable to match on
@@ -187,13 +190,13 @@ class VersionHandler:
 
     Examples
     --------
-
     * `env, match, extra = "CIRCLE_BRANCH", r"^main$", "a${CIRCLE_BUILD_NUM}"`
         This rule is applied in CircleCI branch jobs on the main branch, and the job number is
         appended to the version.
     * `env, match, extra, validate = "CIRCLE_TAG", r"^v(.*)", "", True`
         This rule is applied on CircleCI tag jobs and the tag must match the version prependded by
         "v".
+
     """
 
     env: str | None = None
@@ -207,7 +210,7 @@ class VersionHandler:
             raise ValueError('"env" and "match" must both be specified')
 
     def match_env(self) -> bool:
-        """Returns True if this handler should be triggered."""
+        """Return True if this handler should be triggered."""
         if self.env and self.match:
             return bool(self.match.match(os.getenv(self.env) or ""))
         return True
@@ -229,3 +232,7 @@ class VersionHandler:
         return cls(
             **data_copy, validate=validate, match=None if match is None else re.compile(match)
         )
+
+
+if __name__ == "__main__":
+    main()  # pylint: disable=no-value-for-parameter

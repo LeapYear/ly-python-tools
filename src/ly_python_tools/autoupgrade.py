@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Upgrade repo tooling.
 
@@ -19,11 +18,13 @@ pyproject.toml.
 from __future__ import annotations
 
 import pathlib
-import subprocess
+import subprocess  # nosec: B404
 from collections import defaultdict
 from typing import Iterable, Mapping, NewType, Sequence
 
 import toml
+
+__all__ = ["main"]
 
 Package = NewType("Package", str)
 
@@ -59,9 +60,9 @@ def upgrade_packages(
     ]
     if len(optional_packages) > 0:
         cmd1 = cmd + ["--optional"] + optional_packages
-        subprocess.run(cmd1, check=True)
+        subprocess.check_call(cmd1)  # nosec: B603
     cmd2 = cmd + required_packages
-    subprocess.run(cmd2, check=True)
+    subprocess.check_call(cmd2)  # nosec: B603
 
 
 def main():
@@ -85,3 +86,7 @@ def main():
         extras=extras,
         dev=True,
     )
+
+
+if __name__ == "__main__":
+    main()

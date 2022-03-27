@@ -6,7 +6,7 @@ authors = ["Liam Damewood <liam@leapyear.io>"]
 
 [tool.poetry.scripts]
 autoupgrade = "ly_python_tools.autoupgrade:main"
-lint = "ly_python_tools.lint:main"
+pyproper = "ly_python_tools.pyproper:main"
 version = "ly_python_tools.version:main"
 
 [tool.poetry.dependencies]
@@ -16,7 +16,7 @@ click = "^8.0.4"
 flake8 = { version = "^4.0.1", optional = true }
 flake8-print = {version = "^4.0.0", optional = true}
 isort = "^5.10.1"
-prospector = {version = "^1.7.7", optional = true }
+prospector = {version = "^1.7.7", optional = true, extras = ["with_vulture", "with_bandit", "with_pyroma"]}
 pyright = "^1.1.231"
 pyupgrade = "^2.31.1"
 toml = "^0.10.2"
@@ -32,11 +32,6 @@ pytest = "^7.1.1"
 pre-commit = "^2.17.0"
 pytest-cov = "^3.0.0"
 behave = "^1.2.6"
-
-[tool.lint]
-include = '\.py$'
-pyupgrade = { options=["--py37-plus"] }
-pyright = { options=["--pythonversion", "3.7"] }
 
 [tool.version]
 version_path = "src/ly_python_tools/__init__.py"
@@ -98,5 +93,5 @@ testpaths = [
 xfail_strict=true
 
 [build-system]
-requires = ["poetry-core>=1.0.8"]
+requires = ["poetry-core>=1.1.0"]
 build-backend = "poetry.core.masonry.api"
