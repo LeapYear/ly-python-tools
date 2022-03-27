@@ -1,3 +1,4 @@
+exclude: ^features/steps/data/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.1.0
@@ -6,7 +7,7 @@ repos:
         args: ["--branch", "main"]
       - id: trailing-whitespace
       - id: end-of-file-fixer
-        exclude: ^.circleci/config.yml|^features/steps/data/.*$
+        exclude: ^.circleci/config.yml$
       - id: debug-statements
       - id: check-added-large-files
       - id: check-ast
@@ -32,25 +33,21 @@ repos:
       - id: pyupgrade
         name: pyupgrade
         entry: poetry run pyupgrade
-        exclude: ^features/steps/data/
         language: system
         types: [python]
       - id: black
         name: black
         entry: poetry run black
-        exclude: ^features/steps/data/
         language: system
         types: [python]
-      - id: isort
-        name: isort
-        entry: poetry run isort
-        exclude: ^features/steps/data/
+      - id: reorder-python-imports
+        name: reorder-python-imports
+        entry: poetry run reorder-python-imports --py37-plus --add-import 'from __future__ import annotations'
         language: system
         types: [python]
       - id: pyproper
         name: pyproper
         entry: poetry run pyproper
-        exclude: ^features/steps/data/
         language: system
         require_serial: true
         types: [python]
@@ -64,8 +61,7 @@ repos:
       - id: prospector
         name: prospector
         entry: poetry run prospector
-        files: ^(tests/|features)
-        exclude: ^features/steps/data/
+        files: ^(tests/|features/)
         language: system
         require_serial: true
         types: [python]

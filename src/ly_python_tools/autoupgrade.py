@@ -20,7 +20,10 @@ from __future__ import annotations
 import pathlib
 import subprocess  # nosec: B404
 from collections import defaultdict
-from typing import Iterable, Mapping, NewType, Sequence
+from typing import Iterable
+from typing import Mapping
+from typing import NewType
+from typing import Sequence
 
 import toml
 

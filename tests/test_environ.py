@@ -1,6 +1,7 @@
 """Test the environment helpers."""
-import os
+from __future__ import annotations
 
+import os
 from ly_python_tools.pyproper import environ
 
 
