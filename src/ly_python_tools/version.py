@@ -5,11 +5,15 @@ import os
 import re
 import shutil
 import tokenize
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from dataclasses import field
 from pathlib import Path
 from subprocess import check_output  # nosec: B404
 from tempfile import TemporaryDirectory
-from typing import Any, Mapping, Pattern, Sequence
+from typing import Any
+from typing import Mapping
+from typing import Pattern
+from typing import Sequence
 
 import click
 import pep440

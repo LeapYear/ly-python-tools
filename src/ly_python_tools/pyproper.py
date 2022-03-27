@@ -4,12 +4,16 @@ Wrapper around pyright to support some offline usage.
 See https://github.com/RobertCraigie/pyright-python/issues/2, resolving it may deprecate the need
 for this executable.
 """
+from __future__ import annotations
+
 import functools
 import os
 import subprocess  # nosec: B404
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Sequence
+from typing import Any
+from typing import Callable
+from typing import Sequence
 
 import click
 
