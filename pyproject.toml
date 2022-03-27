@@ -36,11 +36,27 @@ behave = "^1.2.6"
 [tool.version]
 version_path = "src/ly_python_tools/__init__.py"
 pep440_check = true
-handlers = [
-    { env = "CIRCLE_TAG", match = '^v((0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*))', repo = "${ARTIFACTORY_URL}/api/pypi/leapyear-pypi-release-local", validate = true },
-    { env = "CIRCLE_BRANCH", match = '^main$', repo = "${ARTIFACTORY_URL}/api/pypi/leapyear-pypi-snapshot-local", extra = "a${CIRCLE_BUILD_NUM}+${CIRCLE_SHA1}" },
-    { repo = "${ARTIFACTORY_URL}/api/pypi/leapyear-pypi-scratch-local", extra = ".dev${CIRCLE_BUILD_NUM}+${CIRCLE_SHA1}" }
-]
+
+[[tool.version.handlers]]
+# Tagged releases
+repo = "${ARTIFACTORY_URL}/api/pypi/leapyear-pypi-release-local"
+tag_env = "CIRCLE_TAG"
+tag_match = '^v((0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*))$'
+branch_env = "CIRCLE_BRANCH"
+branch_match = '^main$'
+tag_validate = true
+
+[[tool.version.handlers]]
+# main branch
+repo = "${ARTIFACTORY_URL}/api/pypi/leapyear-pypi-snapshot-local"
+branch_env = "CIRCLE_BRANCH"
+branch_match = '^main$'
+extra = "a${CIRCLE_BUILD_NUM}+${CIRCLE_SHA1:0:7}"
+
+[[tool.version.handlers]]
+# branches from developers
+repo = "${ARTIFACTORY_URL}/api/pypi/leapyear-pypi-scratch-local"
+extra = ".dev${CIRCLE_BUILD_NUM}+${CIRCLE_SHA1:0:7}"
 
 [tool.black]
 line-length = 99

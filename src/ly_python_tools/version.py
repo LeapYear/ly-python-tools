@@ -66,7 +66,12 @@ class VersionApp:
 
     def __post_init__(self):
         version = self.handler.get_version()
-        if self.handler.validate and version and version != self.full_version:
+        if self.handler.tag_validate and version and version != self.full_version:
+            raise ValueError(
+                f"pyproject version {self.full_version} "
+                f"does not match environment version {version}"
+            )
+        if self.handler.branch_validate and version and version != self.full_version:
             raise ValueError(
                 f"pyproject version {self.full_version} "
                 f"does not match environment version {version}"
@@ -170,7 +175,7 @@ class VersionConfig:
 
 
 @dataclass(frozen=True)
-class VersionHandler:
+class VersionHandler:  # pylint: disable=too-many-instance-attributes
     """
     Rule for configuration and environment based version handler.
 
@@ -205,26 +210,40 @@ class VersionHandler:
 
     """
 
-    env: str | None = None
-    match: Pattern[str] | None = None
+    tag_env: str | None = None
+    tag_match: Pattern[str] | None = None
+    tag_validate: bool = False
+    branch_env: str | None = None
+    branch_match: Pattern[str] | None = None
+    branch_validate: bool = False
     repo: str | None = None
     extra: str = ""
-    validate: bool = False
 
     def __post_init__(self):
-        if bool(self.env) != bool(self.match):
-            raise ValueError('"env" and "match" must both be specified')
+        if bool(self.tag_env) != bool(self.tag_match):
+            raise ValueError('"tag_env" and "tag_match" must both be specified')
+        if bool(self.branch_env) != bool(self.branch_match):
+            raise ValueError('"branch_env" and "branch_match" must both be specified')
+        if self.branch_validate and self.tag_validate:
+            raise ValueError("It doesn't make any sense to validate both tags and branches")
 
     def match_env(self) -> bool:
         """Return True if this handler should be triggered."""
-        if self.env and self.match:
-            return bool(self.match.match(os.getenv(self.env) or ""))
-        return True
+        ret = [True]
+        if self.tag_env and self.tag_match:
+            ret.append(bool(self.tag_match.match(os.getenv(self.tag_env) or "")))
+        if self.branch_env and self.branch_match:
+            ret.append(bool(self.branch_match.match(os.getenv(self.branch_env) or "")))
+        return all(ret)
 
     def get_version(self) -> str | None:
         """Return the group match from the matcher."""
-        if self.env and self.match and self.validate:
-            match = self.match.match(os.getenv(self.env) or "")
+        if self.tag_env and self.tag_match and self.tag_validate:
+            match = self.tag_match.match(os.getenv(self.tag_env) or "")
+            if match:
+                return match.groups()[0]
+        if self.branch_env and self.branch_match and self.branch_validate:
+            match = self.branch_match.match(os.getenv(self.branch_env) or "")
             if match:
                 return match.groups()[0]
         return None
@@ -233,10 +252,16 @@ class VersionHandler:
     def from_dict(cls, data: Mapping[str, str]) -> VersionHandler:
         """Load an object from a dict."""
         data_copy = dict(data)
-        match = data_copy.pop("match", None)
-        validate = bool(data_copy.pop("validate", False))
+        tag_match = data_copy.pop("tag_match", None)
+        tag_validate = bool(data_copy.pop("tag_validate", False))
+        branch_match = data_copy.pop("branch_match", None)
+        branch_validate = bool(data_copy.pop("branch_validate", False))
         return cls(
-            **data_copy, validate=validate, match=None if match is None else re.compile(match)
+            **data_copy,
+            tag_validate=tag_validate,
+            tag_match=re.compile(tag_match) if tag_match else None,
+            branch_validate=branch_validate,
+            branch_match=re.compile(branch_match) if branch_match else None,
         )
 
 
