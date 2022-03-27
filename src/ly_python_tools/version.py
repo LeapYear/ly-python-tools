@@ -18,7 +18,6 @@ from typing import Pattern
 from typing import Sequence
 
 import click
-import pep440
 import toml
 from expandvars import expandvars
 from poetry.core.version.version import Version
@@ -71,13 +70,15 @@ class VersionApp:
     def __post_init__(self):
         version = self.handler.get_version()
         for matcher in self.handler.matchers:
-            if matcher.validate and version and version != self.full_version:
+            if matcher.validate and version and version != str(self.full_version):
                 raise ValueError(
                     f"pyproject version {self.full_version} "
                     f"does not match environment version {version}"
                 )
-        if self.config.pep440_check and not pep440.is_canonical(self.full_version.split("+")[0]):
-            raise ValueError(f"pyproject version {self.full_version} does not conform to pep-440")
+        if self.config.pep440_check and not is_canonical(self.full_version):
+            raise ValueError(
+                f"pyproject version {self.full_version!s} does not conform to pep-440"
+            )
 
     @property
     def handler(self) -> VersionHandler:
@@ -85,10 +86,10 @@ class VersionApp:
         return self.config.get_handler()
 
     @property
-    def full_version(self) -> str:
+    def full_version(self) -> Version:
         """Return the version including all of the extra environment tags."""
         base_version = str(Version(self.project_version).base_version)  # type: ignore
-        return base_version + expandvars(self.handler.extra)
+        return Version(base_version + expandvars(self.handler.extra))
 
     @property
     def repo(self) -> str | None:
@@ -113,12 +114,12 @@ class VersionApp:
     def _apply_version(self):
         # Use poetry to set the version
         click.echo(f"Setting version to {self.full_version}")
-        check_output(["poetry", "version", self.full_version])  # nosec
+        check_output(["poetry", "version", str(self.full_version)])  # nosec
 
     def _write_version_file(self):
         # Rewrite the version file
         matcher = re.compile(r"^__version__ = \"[^\"]*\".*$")
-        version_string = f'__version__ = "{self.full_version}"'
+        version_string = f'__version__ = "{self.full_version!s}"  # Auto-generated'
 
         if self.config.version_path:
             with TemporaryDirectory() as outdir:
@@ -275,3 +276,20 @@ class Matcher:
 
 if __name__ == "__main__":
     main()  # pylint: disable=no-value-for-parameter
+
+
+def is_canonical(version: Version):
+    """
+    Return True if the version is canonical pep440.
+
+    See
+    https://peps.python.org/pep-0440/#appendix-b-parsing-version-strings-with-regular-expressions
+    """
+    return (
+        re.match(
+            r"^([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*((a|b|rc)(0|[1-9][0-9]*))?"
+            + r"(\.post(0|[1-9][0-9]*))?(\.dev(0|[1-9][0-9]*))?$",
+            version.public,
+        )
+        is not None
+    )

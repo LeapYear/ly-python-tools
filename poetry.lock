@@ -429,14 +429,6 @@ optional = true
 python-versions = ">=2.6"
 
 [[package]]
-name = "pep440"
-version = "0.1.0"
-description = "A simple package with utils to check whether versions number match PEP 440."
-category = "main"
-optional = false
-python-versions = "*"
-
-[[package]]
 name = "pep8-naming"
 version = "0.10.0"
 description = "Check PEP-8 naming conventions, plugin for flake8"
@@ -949,7 +941,7 @@ prospector = ["prospector"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "d189336dd337ccc17cf0d557915184888b9c5feefb0dbca0ae0b607dcafba552"
+content-hash = "54cd22dcdb5f92beda886de8f964b331397d93678589b2bc40a227e9f1c0a9f9"
 
 [metadata.files]
 "aspy.refactor-imports" = [
@@ -1201,10 +1193,6 @@ pathspec = [
 pbr = [
     {file = "pbr-5.8.1-py2.py3-none-any.whl", hash = "sha256:27108648368782d07bbf1cb468ad2e2eeef29086affd14087a6d04b7de8af4ec"},
     {file = "pbr-5.8.1.tar.gz", hash = "sha256:66bc5a34912f408bb3925bf21231cb6f59206267b7f63f3503ef865c1a292e25"},
-]
-pep440 = [
-    {file = "pep440-0.1.0-py2.py3-none-any.whl", hash = "sha256:cebc1a29a7a20ee60c7fcb25a7a1c71c4c5efa7782f8f96f0f7840bed40c6bf3"},
-    {file = "pep440-0.1.0.tar.gz", hash = "sha256:9b51ffcaaa83885ae3ead983f63a3c9c36a40816719013eafc7b52397307e194"},
 ]
 pep8-naming = [
     {file = "pep8-naming-0.10.0.tar.gz", hash = "sha256:f3b4a5f9dd72b991bf7d8e2a341d2e1aa3a884a769b5aaac4f56825c1763bf3a"},
