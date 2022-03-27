@@ -122,6 +122,8 @@ class VersionApp:
                     "w"
                 ) as out:
                     for token in tokenize.generate_tokens(read.readline):
+                        if token.type == tokenize.NL:
+                            out.write(token.line)
                         if token.type == tokenize.NEWLINE:
                             out.write(matcher.sub(version_string, token.line))
                 shutil.copy(outfile, self.config.version_path)
