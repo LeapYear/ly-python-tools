@@ -4,12 +4,11 @@ from __future__ import annotations
 import os
 import re
 import shutil
-import tokenize
 from dataclasses import dataclass
 from dataclasses import field
-from functools import lru_cache
 from pathlib import Path
-from subprocess import check_output  # nosec: B404
+from subprocess import CalledProcessError  # nosec: B404
+from subprocess import run  # nosec: B404
 from tempfile import TemporaryDirectory
 from typing import Any
 from typing import ClassVar
@@ -56,12 +55,16 @@ def main(repo: bool, check: bool):
     try:
         app = VersionApp.from_pyproject(pyproject=get_pyproject(), apply=not check)
     except (InvalidVersion, ValueError) as exc:
-        raise click.ClickException(click.style(str(exc), fg="red"))
+        raise click.ClickException(click.style(str(exc), fg="red")) from exc
 
     if repo and app.repo:
         click.echo(expandvars(app.repo, nounset=True))
-    else:
+        return
+
+    try:
         app.apply_version()
+    except CalledProcessError as exc:
+        raise click.ClickException(click.style(exc.output, fg="red")) from exc
 
 
 @dataclass(frozen=True)
@@ -92,7 +95,7 @@ class VersionApp:
     _warn_color: ClassVar[str] = "magenta"
 
     def __post_init__(self):
-        self.handler.check_version(self.project_version)
+        self.handler.check_version(self.full_version)
 
         if self.config.pep440_check and not self.is_canonical:
             raise ValueError(
@@ -160,8 +163,10 @@ class VersionApp:
 
         click.secho(f"The new version is {self.full_version!s}", fg=self._apply_color)
         click.secho(f"{' '.join(cmd)}", fg=self._content_color)
-        if self.apply:
-            check_output(cmd)  # nosec
+        if not self.apply:
+            return
+
+        run(cmd, check=True, capture_output=True)  # nosec
 
     def _write_version_file(self):
         # Rewrite the version file
@@ -174,11 +179,7 @@ class VersionApp:
         with TemporaryDirectory() as outdir:
             new_contents: list[str] = []
             with self.config.version_path.open(encoding="utf-8") as read:
-                for token in tokenize.generate_tokens(read.readline):
-                    if token.type == tokenize.NL:
-                        new_contents.append(token.line)
-                    if token.type == tokenize.NEWLINE:
-                        new_contents.append(matcher.sub(version_string, token.line))
+                new_contents = [matcher.sub(version_string, line) for line in read.readlines()]
 
             outfile = Path(outdir) / "out.py"
             with outfile.open("w") as out:
@@ -299,7 +300,6 @@ class Matcher:
     validate: bool
 
     @property
-    @lru_cache()
     def _matched(self) -> Match[str] | None:
         """Return the matched pattern."""
         # Lint false-positive: https://github.com/PyCQA/pylint/issues/5091
