@@ -113,6 +113,9 @@ class VersionApp:
     def full_version(self) -> Version:
         """Return the version including all of the extra environment tags."""
         extras = expandvars(self.handler.extra, nounset=True)
+        if str(self.project_version).endswith(extras):
+            # Project file already contains the extras so don't include it again
+            return self.project_version
         return Version(str(self.project_version) + extras)
 
     @property
