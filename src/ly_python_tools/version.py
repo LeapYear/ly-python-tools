@@ -4,14 +4,14 @@ from __future__ import annotations
 import os
 import re
 import shutil
-import tokenize
 from dataclasses import dataclass
 from dataclasses import field
-from functools import lru_cache
 from pathlib import Path
-from subprocess import check_output  # nosec: B404
+from subprocess import CalledProcessError  # nosec: B404
+from subprocess import run  # nosec: B404
 from tempfile import TemporaryDirectory
 from typing import Any
+from typing import ClassVar
 from typing import Mapping
 from typing import Match
 from typing import Pattern
@@ -20,6 +20,7 @@ from typing import Sequence
 import click
 import toml
 from expandvars import expandvars
+from poetry.core.version.exceptions import InvalidVersion
 from poetry.core.version.version import Version
 
 from .config import get_pyproject
@@ -31,7 +32,13 @@ from .config import get_pyproject
     default=False,
     help="Print the repo name to publish to instead of applying the version.",
 )
-def main(repo: bool):
+@click.option(
+    "--check",
+    is_flag=True,
+    default=False,
+    help="Check what changes would be made",
+)
+def main(repo: bool, check: bool):
     # noqa: D301
     """
     Application for managing python versions via pyproject.toml file.
@@ -43,11 +50,21 @@ def main(repo: bool):
     * Checking that tags match the version listed in the poetry file.
     * Writing the version to the file containing `__version__ = "..."`
     """
-    app = VersionApp.from_pyproject(get_pyproject())
-    if not repo:
-        app.apply_version()
+    if repo and check:
+        raise click.UsageError("--check and --repo are mutually exclusive.")
+    try:
+        app = VersionApp.from_pyproject(pyproject=get_pyproject(), apply=not check)
+    except (InvalidVersion, ValueError) as exc:
+        raise click.ClickException(click.style(str(exc), fg="red")) from exc
+
     if repo and app.repo:
-        click.echo(expandvars(app.repo))
+        click.echo(expandvars(app.repo, nounset=True))
+        return
+
+    try:
+        app.apply_version()
+    except CalledProcessError as exc:
+        raise click.ClickException(click.style(exc.output, fg="red")) from exc
 
 
 @dataclass(frozen=True)
@@ -61,24 +78,31 @@ class VersionApp:
         The config for running the app.
     project_version:
         The original `tool.poetry.version` field.
+    apply:
+        If True, changes will be applied.
 
     """
 
     config: VersionConfig
-    project_version: str
+    project_version: Version
+    apply: bool
+
+    # _apply_colors[0] is used when apply = False, otherwise _apply_colors[1] is used.
+    _apply_colors: ClassVar[Sequence[str]] = ["yellow", "green"]
+    # Informative content (files, commands)
+    _content_color: ClassVar[str] = "cyan"
+    # Warnings
+    _warn_color: ClassVar[str] = "magenta"
 
     def __post_init__(self):
-        version = self.handler.get_version()
-        for matcher in self.handler.matchers:
-            if matcher.validate and version and version != str(self.full_version):
-                raise ValueError(
-                    f"pyproject version {self.full_version} "
-                    f"does not match environment version {version}"
-                )
-        if self.config.pep440_check and not is_canonical(self.full_version):
+        self.handler.check_version(self.full_version)
+
+        if self.config.pep440_check and not self.is_canonical:
             raise ValueError(
                 f"pyproject version {self.full_version!s} does not conform to pep-440"
             )
+        if not self.apply:
+            click.secho("Note: This run will not apply any changes.", fg=self._warn_color)
 
     @property
     def handler(self) -> VersionHandler:
@@ -88,21 +112,46 @@ class VersionApp:
     @property
     def full_version(self) -> Version:
         """Return the version including all of the extra environment tags."""
-        base_version = str(Version(self.project_version).base_version)  # type: ignore
-        return Version(base_version + expandvars(self.handler.extra))
+        extras = expandvars(self.handler.extra, nounset=True)
+        if str(self.project_version).endswith(extras):
+            # Project file already contains the extras so don't include it again
+            return self.project_version
+        return Version(str(self.project_version) + extras)
+
+    @property
+    def is_canonical(self) -> bool:
+        """
+        Return True if the version is canonical pep440.
+
+        See
+        https://peps.python.org/pep-0440/#appendix-b-parsing-version-strings-with-regular-expressions
+        """
+        return (
+            re.match(
+                r"^([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*((a|b|rc)(0|[1-9][0-9]*))?"
+                + r"(\.post(0|[1-9][0-9]*))?(\.dev(0|[1-9][0-9]*))?$",
+                self.full_version.public,
+            )
+            is not None
+        )
 
     @property
     def repo(self) -> str | None:
         """Return the repo this version should be published to."""
         return self.handler.repo
 
+    @property
+    def _apply_color(self) -> str:
+        return "green" if self.apply else "yellow"
+
     @classmethod
-    def from_pyproject(cls, pyproject: Path) -> VersionApp:
+    def from_pyproject(cls, pyproject: Path, apply: bool) -> VersionApp:
         """Load the application from a pyproject.toml file."""
         tool_root = toml.load(pyproject)["tool"]
         return cls(
             config=VersionConfig.from_dict(dict(tool_root.get("version", {}))),
-            project_version=str(tool_root.get("poetry", {}).get("version")),
+            project_version=Version(tool_root.get("poetry", {}).get("version")),
+            apply=apply,
         )
 
     def apply_version(self) -> VersionApp:
@@ -113,25 +162,36 @@ class VersionApp:
 
     def _apply_version(self):
         # Use poetry to set the version
-        click.echo(f"Setting version to {self.full_version}")
-        check_output(["poetry", "version", str(self.full_version)])  # nosec
+        cmd = ["poetry", "version", str(self.full_version)]
+
+        click.secho(f"The new version is {self.full_version!s}", fg=self._apply_color)
+        click.secho(f"{' '.join(cmd)}", fg=self._content_color)
+        if not self.apply:
+            return
+
+        run(cmd, check=True, capture_output=True)  # nosec
 
     def _write_version_file(self):
         # Rewrite the version file
         matcher = re.compile(r"^__version__ = \"[^\"]*\".*$")
         version_string = f'__version__ = "{self.full_version!s}"  # Auto-generated'
 
-        if self.config.version_path:
-            with TemporaryDirectory() as outdir:
-                outfile = Path(outdir) / "out.py"
-                with self.config.version_path.open(encoding="utf-8") as read, outfile.open(
-                    "w"
-                ) as out:
-                    for token in tokenize.generate_tokens(read.readline):
-                        if token.type == tokenize.NL:
-                            out.write(token.line)
-                        if token.type == tokenize.NEWLINE:
-                            out.write(matcher.sub(version_string, token.line))
+        if not self.config.version_path:
+            return
+
+        with TemporaryDirectory() as outdir:
+            new_contents: list[str] = []
+            with self.config.version_path.open(encoding="utf-8") as read:
+                new_contents = [matcher.sub(version_string, line) for line in read.readlines()]
+
+            outfile = Path(outdir) / "out.py"
+            with outfile.open("w") as out:
+                out.writelines(new_contents)
+
+            click.secho(f"Rewriting {self.config.version_path!s}", fg=self._apply_color)
+            click.secho("".join(new_contents), nl=False, fg=self._content_color)
+
+            if self.apply:
                 shutil.copy(outfile, self.config.version_path)
 
 
@@ -186,28 +246,14 @@ class VersionHandler:
 
     Arguments:
     ---------
-    env:
-        Environment variable to match on
-    match:
-        Regex pattern to compare to env
+    matchers:
+        Environment variables that trigger this handler
     repo:
         Repository location to publish to when this rule is triggered. This can contain
         environment variables.
     extra:
-        Additional text to add to the version when this rule is triggered. This can contain
+        Additional text to add to the project version when this rule is triggered. This can contain
         environment variables.
-    validate:
-        If True, use the first group in the match to confirm that the final version matches
-        exactly.
-
-    Examples
-    --------
-    * `env, match, extra = "CIRCLE_BRANCH", r"^main$", "a${CIRCLE_BUILD_NUM}"`
-        This rule is applied in CircleCI branch jobs on the main branch, and the job number is
-        appended to the version.
-    * `env, match, extra, validate = "CIRCLE_TAG", r"^v(.*)", "", True`
-        This rule is applied on CircleCI tag jobs and the tag must match the version prependded by
-        "v".
 
     """
 
@@ -223,12 +269,10 @@ class VersionHandler:
         """Return True if this handler should be triggered."""
         return all(matcher.match_env() for matcher in self.matchers)
 
-    def get_version(self) -> str | None:
-        """Return the group match from the matcher."""
+    def check_version(self, full_version: Version):
+        """Validate the supplied version against the group is validate is True."""
         for matcher in self.matchers:
-            if matcher.validate:
-                return matcher.get_version()
-        return None
+            matcher.check_version(full_version)
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> VersionHandler:
@@ -240,14 +284,25 @@ class VersionHandler:
 
 @dataclass(frozen=True)
 class Matcher:
-    """Determine if the environment variable matches a pattern."""
+    """
+    Determine if the environment variable matches a pattern.
+
+    Arguments:
+    ---------
+    env:
+        The environment variable to match on.
+    pattern:
+        The regex pattern to match on env.
+    validate:
+        If True, the first group in the pattern must match the version checked-in for this project.
+
+    """
 
     env: str
     pattern: Pattern[str]
     validate: bool
 
     @property
-    @lru_cache()
     def _matched(self) -> Match[str] | None:
         """Return the matched pattern."""
         # Lint false-positive: https://github.com/PyCQA/pylint/issues/5091
@@ -258,12 +313,20 @@ class Matcher:
         """Return True if the environment variable matches the pattern."""
         return bool(self._matched)
 
-    def get_version(self) -> str | None:
-        """Return the first group of the pattern if validate is True."""
-        if self.validate:
-            if self._matched:
-                return self._matched.groups()[0]
-        return None
+    def check_version(self, full_version: Version):
+        """Raise exception if argument doesn't match the first matching group."""
+        if not self.validate:
+            return
+
+        if not self._matched:
+            raise ValueError("Could not match the regex")
+
+        version = Version(self._matched.groups()[0])
+        if version == full_version:
+            return
+        raise ValueError(
+            f"pyproject version {full_version!s} does not match environment version {version!s}"
+        )
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> Matcher:
@@ -276,20 +339,3 @@ class Matcher:
 
 if __name__ == "__main__":
     main()  # pylint: disable=no-value-for-parameter
-
-
-def is_canonical(version: Version):
-    """
-    Return True if the version is canonical pep440.
-
-    See
-    https://peps.python.org/pep-0440/#appendix-b-parsing-version-strings-with-regular-expressions
-    """
-    return (
-        re.match(
-            r"^([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*((a|b|rc)(0|[1-9][0-9]*))?"
-            + r"(\.post(0|[1-9][0-9]*))?(\.dev(0|[1-9][0-9]*))?$",
-            version.public,
-        )
-        is not None
-    )

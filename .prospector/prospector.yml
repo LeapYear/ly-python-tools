@@ -4,11 +4,13 @@ ignore-paths:
 strictness: veryhigh
 max-line-length: 99
 
-pycodestyle:
+pylint:
   disable:
     # Don't warn about f-strings in logging
     # https://pylint.pycqa.org/en/latest/whatsnew/2.5.html#other-changes
     - logging-fstring-interpolation
+    # reorder-python-imports takes precedence
+    - wrong-import-order
 
 pydocstyle:
   run: true
