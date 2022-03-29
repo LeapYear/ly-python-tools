@@ -1,13 +1,16 @@
 # ly_python_tools
 
-This package consists of two executables:
+This package consists of a few executables:
 
 - autoupgrade: A tool that automatically upgrades developer dependencies for a poetry project.
-- lint: A linter that bootstraps and runs other linters.
+- pyproper: A simple wrapper around pyright that allows for bootstrapping pyright in an easy-to-find location.
+- version: Uses configuration to adds CI metadata to python package versions and enforces pep440.
 
 This is pre-alpha quality software. Use at your own risk.
 
-## Autoupgrade
+## Tools
+
+### Autoupgrade
 
 The `autoupgrade` tool will update dev-dependencies automatically. This replaces
 the process of merging dependabot PRs one at a time. Instead, we would create a
@@ -30,18 +33,27 @@ pytest = "<7.1.0"
 prospector = ["with_everything"]
 ```
 
-## Lint
+### Pyproper
 
-We have our own wrapper around python linters because we want to unify the
-tooling we use across multiple projects. We want to favor consistency and
-minimal configuration. These linters are the minimum version that we support.
-Additionally, `pyright` downloads software via `npx` and we want to have more
-control over when that download happens in CI and add additional retry logic
-that is shared across many projects. The goal is to ensure that running the lint
-step in CI can never fail due to being misconfigured or due to network failures.
+`pyproper` is a simple wrapper around `pyright`. It's only purpose is to allow
+for consistent bootstrapping of `pyright` by ensuring an isolated version of
+node is used (via `PYRIGHT_PYTHON_GLOBAL_NODE`) and the project is installed in
+a known location (by setting `PYRIGHT_PYTHON_ENV_DIR=$XDG_DATA_HOME/pyright`)
 
-See this project's `pyproject.toml` for an example of how to configure the
-linter.
+### Version
+
+`version` allows for advanced configuration of the python package version in
+CI. This enables including metadata to the python version depending on CI
+tags or branches. This also enforces consistent and strict adherence to the
+pep440 spec.
+
+Some example use-cases:
+
+- Tag to release rules:
+
+  - Branches matching `^main` and tag matching `^v(.*)$` must also match the project file's version. They are pushed to repo A.
+  - Branches matching `^main$` are alpha releases with a number matching the env var `BUILD_NUM`. They are pushed to repo B.
+  - Branches not matching `^main$` are development releases with a number matching the env var `BUILD_NUM`. They are pushed to repo B.
 
 ## Quickstart
 
@@ -59,7 +71,7 @@ poetry run pyproper --bootstrap
 
 ## Contributing
 
-This is alpha quality. Contact the author(s) if you want to contribute.
+Contact the author(s) if you want to contribute.
 
 ### Circle CI
 
