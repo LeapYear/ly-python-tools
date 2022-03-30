@@ -45,12 +45,13 @@ repos:
         entry: poetry run reorder-python-imports --py37-plus --add-import 'from __future__ import annotations'
         language: system
         types: [python]
-      - id: pyproper
-        name: pyproper
-        entry: poetry run pyproper
-        language: system
-        require_serial: true
+      - id: pyright
+        name: pyright
+        entry: pyright
+        language: node
+        pass_filenames: false
         types: [python]
+        additional_dependencies: ["pyright@1.1.233"]
       - id: prospector
         name: prospector (strict)
         entry: poetry run prospector --profile strict
