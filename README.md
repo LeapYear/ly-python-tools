@@ -1,9 +1,26 @@
 # ly_python_tools
 
-This package consists of a few executables:
+This repo is intended to codify a number of opinionated best-practice approaches
+to writing python code.
+
+It consists of a few executables:
 
 - autoupgrade: A tool that automatically upgrades developer dependencies for a poetry project.
-- version: Uses configuration to adds CI metadata to python package versions and enforces pep440.
+- version: Helps enforce pep440 specification for python projects.
+
+and a number of lint and pre-commit configurations that we believe should be
+taken as solid recommendations for any python project. Making your project
+depend on this package will also install a number of linters out-of-the-box:
+
+- autoflake
+- black
+- reorder-python-imports
+- pyupgrade
+- pyright
+- flake8 (optional)
+- prospector (optional)
+
+however you are expected to configure and run these yourself.
 
 This is pre-alpha quality software. Use at your own risk.
 
@@ -87,25 +104,15 @@ Install and use the linters
 
 ```
 # Install all linters
-poetry add --dev ly_python_tools@latest -E prospector -E flake8
-# Ensure pyright is downloaded
-poetry run pyproper --bootstrap
-# Run the linters
-poetry run pyproper
+poetry add --dev ly_python_tools -E prospector -E flake8
+# Install the lint hooks
+poetry run pre-commit install --install-hooks
+# Run all of the linters
+poetry run pre-commit run -a
 ```
 
 Upgrade all dev-dependencies
 
 ```
 poetry run autoupgrade
-```
-
-## CI config
-
-```yaml
-run: |  # Install step can fail due to network failures.
-  poetry install
-  poetry run lint --bootstrap
-run: |  # Step should only fail due to linting failures.
-  poetry run lint src/
 ```
