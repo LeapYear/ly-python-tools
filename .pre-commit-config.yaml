@@ -45,13 +45,17 @@ repos:
         entry: poetry run reorder-python-imports --py37-plus --add-import 'from __future__ import annotations'
         language: system
         types: [python]
-      - id: pyproper
-        name: pyproper
-        entry: poetry run pyproper
-        language: system
-        require_serial: true
+      - id: pyright
+        name: pyright
+        # pyright calls "python3" on the path to discover the location of the environment and 3rd
+        # party packages that are not a part of typeshed. For non-poetry projects you can consider
+        # activating the environment using bash: `bash -c 'venv/bin/activate && pyright'` or
+        # manually adding the venv to the path: `bash -c 'env PATH=venv/bin:$PATH pyright'
+        entry: poetry run pyright
+        language: node
         pass_filenames: false
         types: [python]
+        additional_dependencies: ["pyright@1.1.233"]
       - id: prospector
         name: prospector (strict)
         entry: poetry run prospector --profile strict

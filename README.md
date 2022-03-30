@@ -3,10 +3,29 @@
 This package consists of a few executables:
 
 - autoupgrade: A tool that automatically upgrades developer dependencies for a poetry project.
-- pyproper: A simple wrapper around pyright that allows for bootstrapping pyright in an easy-to-find location.
 - version: Uses configuration to adds CI metadata to python package versions and enforces pep440.
 
 This is pre-alpha quality software. Use at your own risk.
+
+## Quickstart
+
+Install the project with all of the extras.
+
+```bash
+poetry install -E prospector -E flake8
+```
+
+Install pre-commit and hooks
+
+```bash
+poetry run pre-commit install --install-hooks
+```
+
+Run the linters
+
+```
+poetry run pre-commit run -a
+```
 
 ## Tools
 
@@ -33,13 +52,6 @@ pytest = "<7.1.0"
 prospector = ["with_everything"]
 ```
 
-### Pyproper
-
-`pyproper` is a simple wrapper around `pyright`. It's only purpose is to allow
-for consistent bootstrapping of `pyright` by ensuring an isolated version of
-node is used (via `PYRIGHT_PYTHON_GLOBAL_NODE`) and the project is installed in
-a known location (by setting `PYRIGHT_PYTHON_ENV_DIR=$XDG_DATA_HOME/pyright`)
-
 ### Version
 
 `version` allows for advanced configuration of the python package version in
@@ -54,20 +66,6 @@ Some example use-cases:
   - Branches matching `^main` and tag matching `^v(.*)$` must also match the project file's version. They are pushed to repo A.
   - Branches matching `^main$` are alpha releases with a number matching the env var `BUILD_NUM`. They are pushed to repo B.
   - Branches not matching `^main$` are development releases with a number matching the env var `BUILD_NUM`. They are pushed to repo B.
-
-## Quickstart
-
-Install the project.
-
-```
-poetry install -E prospector -E flake8
-```
-
-Bootstrap pyright using pyproper. This will ensure pyright is downloaded
-
-```
-poetry run pyproper --bootstrap
-```
 
 ## Contributing
 
