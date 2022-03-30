@@ -50,6 +50,7 @@ repos:
         entry: poetry run pyproper
         language: system
         require_serial: true
+        pass_filenames: false
         types: [python]
       - id: prospector
         name: prospector (strict)
