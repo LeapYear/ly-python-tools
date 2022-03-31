@@ -46,6 +46,17 @@ tests = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)"
 tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins", "cloudpickle"]
 
 [[package]]
+name = "autoflake"
+version = "1.4"
+description = "Removes unused imports and unused variables"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+pyflakes = ">=1.1.0"
+
+[[package]]
 name = "bandit"
 version = "1.7.4"
 description = "Security oriented static analyser for python code."
@@ -565,7 +576,7 @@ name = "pyflakes"
 version = "2.4.0"
 description = "passive checker of Python programs"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
@@ -928,7 +939,7 @@ prospector = ["prospector"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "b9d946f8e6edd0144f6b42aa028489ce0f2e5bd85c765dd55ef5a3b41f66d400"
+content-hash = "94fe97e35a7eab2a4d3e44b5eac47d21df4786d2b7c0aeca0df4e65e9c4ba85c"
 
 [metadata.files]
 "aspy.refactor-imports" = [
@@ -946,6 +957,9 @@ atomicwrites = [
 attrs = [
     {file = "attrs-21.4.0-py2.py3-none-any.whl", hash = "sha256:2d27e3784d7a565d36ab851fe94887c5eccd6a463168875832a1be79c82828b4"},
     {file = "attrs-21.4.0.tar.gz", hash = "sha256:626ba8234211db98e869df76230a137c4c40a12d72445c45d5f5b716f076e2fd"},
+]
+autoflake = [
+    {file = "autoflake-1.4.tar.gz", hash = "sha256:61a353012cff6ab94ca062823d1fb2f692c4acda51c76ff83a8d77915fba51ea"},
 ]
 bandit = [
     {file = "bandit-1.7.4-py3-none-any.whl", hash = "sha256:412d3f259dab4077d0e7f0c11f50f650cc7d10db905d98f6520a95a18049658a"},

@@ -30,6 +30,20 @@ repos:
         entry: circleci config validate
         language: system
         files: ^.circleci/config\.yml$
+
+      #################################
+      # Python specific configuration #
+      #################################
+      # Many linters such as flake8, prospector and pyright need to interact a bit more dynamically
+      # with the installed environment. The pre-commit authors really only provide the `system`
+      # language for this use-case. When using the system language, it is ultimately less error
+      # prone to run everything in the poetry environment and simply bypass the pre-commit author's
+      # intent of having isolated environments for static linters.
+      - id: autoflake
+        name: autoflake
+        entry: poetry run autoflake
+        language: system
+        types: [python]
       - id: pyupgrade
         name: pyupgrade
         entry: poetry run pyupgrade
@@ -57,6 +71,7 @@ repos:
         types: [python]
         additional_dependencies: ["pyright@1.1.233"]
       - id: prospector
+        # Linter for source directory uses the profile that also checks security issues.
         name: prospector (strict)
         entry: poetry run prospector --profile strict
         files: ^src
@@ -64,9 +79,10 @@ repos:
         require_serial: true
         types: [python]
       - id: prospector
+        # Test directories are expected to have fixtures and less security requirements.
         name: prospector
         entry: poetry run prospector
-        files: ^(tests/|features/)
+        files: ^(tests|features)/
         language: system
         require_serial: true
         types: [python]
