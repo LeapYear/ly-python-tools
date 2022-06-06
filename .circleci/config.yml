@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-  python: circleci/python@2.0.3
+  python: circleci/python@2.0
   circleci-cli: circleci/circleci-cli@0.1.9
 commands:
   setup-artifactory:
